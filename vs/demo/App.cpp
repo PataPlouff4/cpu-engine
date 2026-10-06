@@ -82,9 +82,9 @@ void App::OnStart()
 	m_pEarth = cpuEngine.CreateEntity();
 	m_pEarth->pMesh = &m_meshSphere;
 	m_pEarth->pMaterial = &m_materialEarth;
-	m_pEarth->transform.pos.x = 3.0f;
-	m_pEarth->transform.pos.y = 3.0f;
-	m_pEarth->transform.pos.z = 5.0f;
+	m_pEarth->transform.pos.x = 0.0f;
+	m_pEarth->transform.pos.y = 0.0f;
+	m_pEarth->transform.pos.z = 1.0f;
 	m_pMoon = cpuEngine.CreateEntity();
 	m_pMoon->pMesh = &m_meshSphere;
 	m_pMoon->pMaterial = &m_materialMoon;
@@ -153,18 +153,23 @@ void App::OnUpdate()
 	m_pEmitter->dir.z = -m_pEmitter->dir.z; 
 
 	// Turn camera
-	cpuEngine.GetCamera()->transform.AddYPR(0.0f, 0.0f, dt*0.1f);
+	cpuEngine.GetCamera()->transform.AddYPR(dt*0.0f, dt*0.0f, dt*0.0f);
 
 	// Move ship
 	if ( cpuInput.IsUp() )
-		cpuEngine.GetCamera()->transform.Move(dt*1.0f);
+		//cpuEngine.GetCamera()->transform.Move(dt*1.0f);
+		cpuEngine.GetCamera()->transform.AddYPR(0.0f, dt*-1.0f, 0.0f);
 	if ( cpuInput.IsDown() )
-		cpuEngine.GetCamera()->transform.Move(-dt*1.0f);
+		//cpuEngine.GetCamera()->transform.Move(-dt*1.0f);
+		cpuEngine.GetCamera()->transform.AddYPR(0.0f, dt*1.0f, 0.0f);
 	if ( cpuInput.IsLeft() )
 		cpuEngine.GetCamera()->transform.AddYPR(-dt*XM_PI);
 	if ( cpuInput.IsRight() )
 		cpuEngine.GetCamera()->transform.AddYPR(dt*XM_PI);
 
+	cpu_ray ray;
+	cpuEngine.GetCursorRay(ray);
+	cpuEngine.GetCamera()->transform.LookAt(ray.dir.x,ray.dir.y, 0.0f);
 	// Move missiles
 	for ( auto it=m_missiles.begin() ; it!=m_missiles.end() ; ++it )
 	{
