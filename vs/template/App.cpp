@@ -19,6 +19,9 @@ App::~App()
 
 void App::OnStart()
 {
+	rand = (ui32)timeGetTime();
+
+	m_font.Create(cpuDevice.GetHeight() <= 512 ? 14 : 28);
 
 	XMFLOAT3 outsideCircleColor = {0,255,0};
 	XMFLOAT3 sphereColor = { 255,0,255 };
@@ -75,24 +78,28 @@ void App::OnUpdate()
 {
 	float dt = cpuTime.delta;
 	float time = cpuTime.total;
+	m_delay += dt;
 	
 
-	if (cpuInput.IsDown())
+	/*if (cpuInput.IsDown())
 		cpuEngine.GetCamera()->transform.Move(dt * -1.0f);
 	if (cpuInput.IsUp())
-		cpuEngine.GetCamera()->transform.Move(dt * 1.0f);
+		cpuEngine.GetCamera()->transform.Move(dt * 1.0f);*/
 	if (cpuInput.IsLeft())
 		m_angle += dt * XM_PI;
 	if (cpuInput.IsRight())
 		m_angle += -dt * XM_PI;
 
-	m_delay += dt;
+	//Spawn des cailloux
 	if (m_delay >= 1.0)
 	{
-		cpu_entity* pTmpRock = cpuEngine.CreateEntity();
-		pTmpRock->pMesh = &m_rock;
-		pTmpRock->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f,  -m_angle);
-		pTmpRock->transform.pos.y = 3.0f;
+		Rock* pTmpRock;
+
+		float randAngle = XM_PI * cpu::Rand01(rand);
+		pTmpRock->CreateRock(&m_rock, randAngle);
+
+		pTmpRock->m_pEntity->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f, randAngle);
+		pTmpRock->m_pEntity->transform.pos.y = 3.0f;
 
 		m_pRock.push_back(pTmpRock);
 		m_delay = 0.0f;
@@ -105,22 +112,37 @@ void App::OnUpdate()
 	
 	//Orbite de la caméra 
 	XMFLOAT3 pos = { m_pSphere->transform.pos.x,				//Position de la sphere  en X
-					 2.0f,										//Hauteur de la camera   en Y
+					 3.0f,										//Hauteur de la camera   en Y
 					 m_pSphere->transform.pos.z };				//Position de la sphere  en Z
 	cpuEngine.GetCamera()->transform.OrbitAroundAxis(pos, CPU_VEC3_UP, 2.0f, m_angle);
-	cpuEngine.GetCamera()->transform.LookAt(pos.x, 1.0f, pos.z);
+	cpuEngine.GetCamera()->transform.LookAt(pos.x, 1.5f, pos.z);
 	
+
+	//Mouvement des cailloux
 	for (auto i = m_pRock.begin(); i != m_pRock.end(); ++i)
 	{
-		cpu_entity* pRock = *i;
-		pRock->transform.pos.y -= dt * 2.0f;
-		if (pRock->lifetime > 10.0f)
-			cpuEngine.Release(pRock);
+		Rock* pRock = *i;
+		pRock->m_pEntity->transform.pos.y -= dt * 2.0f;
+		//fmodf();
+
+		if (pRock->m_pEntity->transform.pos.y <= m_pCircle->transform.pos.y)
+		{
+			cpuEngine.Release(pRock->m_pEntity);
+			m_score--;
+			continue;
+		}
+		if (cpu::SphereSphere(pRock->m_pEntity->transform.pos,pRock->m_pEntity->pMesh->radius,m_pSphere->transform.pos, m_pSphere->pMesh->radius))
+		{
+			cpuEngine.Release(pRock->m_pEntity);
+			m_score++;
+			continue;
+		}
 	}
 
+	//Destruction des cailloux
 	for (auto it = m_pRock.begin(); it != m_pRock.end(); )
 	{
-		if ((*it)->dead)
+		if ((*it)->m_pEntity->dead)
 			it = m_pRock.erase(it);
 		else
 			++it;
@@ -128,7 +150,6 @@ void App::OnUpdate()
 
 	if (cpuInput.IsBackPressed())
 		cpuEngine.Quit();
-
 }
 
 void App::OnExit()
@@ -138,11 +159,27 @@ void App::OnExit()
 
 void App::OnRender(int pass)
 {
-	// YOUR CODE HERE
+	std::string stat = "Score: " + CPU_STR(m_score);
+
+	XMFLOAT3 tint = { 1.0f, 1.0f, 0.8f };
+	cpuDevice.DrawText(&m_font, stat.c_str(), (int)(cpuDevice.GetWidth() * 0.5f), 10, CPU_TEXT_CENTER, &tint);
+
 }
 
 void App::MyPixelShader(cpu_ps_io& io)
 {
 	// YOUR CODE HERE
 	io.color = io.p.color;
+}
+
+//////////////////////////////////
+//////////////////////////////////
+//////////////////////////////////
+
+void Rock::CreateRock(cpu_mesh* mesh, float angle)
+{
+	cpu_entity* pTmpEntity = cpuEngine.CreateEntity();
+	pTmpEntity->pMesh = mesh;
+
+	m_angle = angle;
 }
