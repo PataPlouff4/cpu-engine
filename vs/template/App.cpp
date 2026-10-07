@@ -19,6 +19,7 @@ App::~App()
 
 void App::OnStart()
 {
+
 	XMFLOAT3 outsideCircleColor = {0,255,0};
 	XMFLOAT3 sphereColor = { 255,0,255 };
 
@@ -90,10 +91,8 @@ void App::OnUpdate()
 	{
 		cpu_entity* pTmpRock = cpuEngine.CreateEntity();
 		pTmpRock->pMesh = &m_rock;
-		pTmpRock->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f, -m_angle);
-		//pTmpRock->transform.pos.x = m_pSphere->transform.pos.x;
+		pTmpRock->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f,  -m_angle);
 		pTmpRock->transform.pos.y = 3.0f;
-		//pTmpRock->transform.pos.z = m_pSphere->transform.pos.z;
 
 		m_pRock.push_back(pTmpRock);
 		m_delay = 0.0f;
@@ -119,6 +118,16 @@ void App::OnUpdate()
 			cpuEngine.Release(pRock);
 	}
 
+	for (auto it = m_pRock.begin(); it != m_pRock.end(); )
+	{
+		if ((*it)->dead)
+			it = m_pRock.erase(it);
+		else
+			++it;
+	}
+
+	if (cpuInput.IsBackPressed())
+		cpuEngine.Quit();
 
 }
 
