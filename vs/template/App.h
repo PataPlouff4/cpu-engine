@@ -7,7 +7,9 @@ public:
 	float m_angle;
 
 public:
+
 	void CreateRock(cpu_mesh* mesh, float angle);
+	void DeleteRock();
 
 };
 
@@ -24,10 +26,15 @@ public:
 	void OnExit();
 	void OnRender(int pass);
 
+	void SpawnRock();
+	void MoveRocks(float dt);
+	void PurgeRock();
+
 	static void MyPixelShader(cpu_ps_io& io);
 
 private:
 	inline static App* s_pApp = nullptr;
+	cpu_rt* m_rts[1];
 
 	//Ressources
 	cpu_mesh m_rail;
@@ -35,8 +42,12 @@ private:
 	cpu_mesh m_Scircle;
 	cpu_mesh m_sphere;
 	cpu_mesh m_rock;
+	cpu_mesh m_skybox;
+
+	cpu_texture m_textureSkybox;
 
 	cpu_font m_font;
+
 
 	//3D
 	cpu_entity* m_pRail;
@@ -44,6 +55,7 @@ private:
 	cpu_entity* m_pCircle;
 	cpu_entity* m_pSCircle;
 	cpu_entity* m_pSphere;
+	cpu_entity* m_pSkybox;
 	std::list<Rock*> m_pRock;
 
 	float m_spawnRate = 1.0f;

@@ -12,6 +12,58 @@ App::App()
 App::~App()
 {
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void App::SpawnRock()
+{
+	Rock* pTmpRock;
+	pTmpRock = new Rock();
+	float randAngle = 2 *  XM_PI * cpu::Rand01(rand);
+
+	pTmpRock->CreateRock(&m_rock, randAngle);
+	pTmpRock->m_pEntity->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f, randAngle);
+	pTmpRock->m_pEntity->transform.pos.y = 3.0f;
+
+	m_pRock.push_back(pTmpRock);
+}
+
+void App::MoveRocks(float dt)
+{
+	for (auto i = m_pRock.begin(); i != m_pRock.end(); ++i)
+	{
+		Rock* pRock = *i;
+		pRock->m_pEntity->transform.pos.y -= dt * 2.0f;
+		//fmodf();
+
+		if (pRock->m_pEntity->transform.pos.y <= m_pCircle->transform.pos.y)
+		{
+			pRock->DeleteRock();
+			i = m_pRock.erase(i);
+			m_score--;
+			continue;
+		}
+		if (cpu::SphereSphere(pRock->m_pEntity->transform.pos, pRock->m_pEntity->pMesh->radius, m_pSphere->transform.pos, m_pSphere->pMesh->radius))
+		{
+			pRock->DeleteRock();
+			i = m_pRock.erase(i);
+			m_score++;
+			continue;
+		}
+	}
+}
+
+void App::PurgeRock()
+{
+	for (auto it = m_pRock.begin(); it != m_pRock.end(); )
+	{
+		if ((*it)->m_pEntity->dead)
+			it = m_pRock.erase(it);
+		else
+			++it;
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -35,11 +87,17 @@ void App::OnStart()
 	m_circle.CreateCircle(1.0f,32, outsideCircleColor);
 	m_Scircle.CreateCircle(0.80f, 32);
 	m_rock.CreateSphere(0.05f, 5.0f, 5.0f);
+	m_skybox.CreateSkyBox(50.0f);
 
-	m_sphere.CreateSphere(0.1f,10.f,10.f, sphereColor, sphereColor);
+	m_sphere.CreateSphere(0.1f,10.f,10.f, sphereColor, sphereColor); 
 
+	//Texture
+	m_textureSkybox.Load("Axel.png");
 
 	//Entity
+	
+	m_pSkybox = cpuEngine.CreateEntity();
+	m_pSkybox->pMesh = &m_skybox;
 	
 	m_pCircle = cpuEngine.CreateEntity();
 	m_pCircle->pMesh = &m_circle;
@@ -52,39 +110,16 @@ void App::OnStart()
 	m_pSphere->pMesh = &m_sphere;
 	m_pSphere->transform.pos.y = 0.1f;
 	m_pSphere->transform.pos.z = - 0.9f;
-
-
-
-	/*
-	m_rail.CreateCylinder(railLength * 0.5f);
-
-	
-
-	int railCount = 8;
-	float step = railLength / railCount;
-
-	for (int i = 0; i < railCount; i++)
-	{
-		m_pRail = cpuEngine.CreateEntity();
-		m_pRail->pMesh = &m_rail;
-		m_pRail->transform.Move(1.5f);
-		m_pRail->transform.AddYPR(XM_PI * step, 0.0f, XM_PI * 0.5f);
-	}
-
-	*/
 }
 
 void App::OnUpdate()
 {
+	//Time
 	float dt = cpuTime.delta;
 	float time = cpuTime.total;
 	m_delay += dt;
 	
-
-	/*if (cpuInput.IsDown())
-		cpuEngine.GetCamera()->transform.Move(dt * -1.0f);
-	if (cpuInput.IsUp())
-		cpuEngine.GetCamera()->transform.Move(dt * 1.0f);*/
+	//Input
 	if (cpuInput.IsLeft())
 		m_angle += dt * XM_PI;
 	if (cpuInput.IsRight())
@@ -93,15 +128,7 @@ void App::OnUpdate()
 	//Spawn des cailloux
 	if (m_delay >= 1.0)
 	{
-		Rock* pTmpRock;
-
-		float randAngle = XM_PI * cpu::Rand01(rand);
-		pTmpRock->CreateRock(&m_rock, randAngle);
-
-		pTmpRock->m_pEntity->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f, randAngle);
-		pTmpRock->m_pEntity->transform.pos.y = 3.0f;
-
-		m_pRock.push_back(pTmpRock);
+		SpawnRock();
 		m_delay = 0.0f;
 	}
 
@@ -109,6 +136,7 @@ void App::OnUpdate()
 	//Orbite de la sphere
 	m_pSphere->transform.OrbitAroundAxis(m_pCircle->transform.pos, CPU_VEC3_UP, 0.9f, m_angle);
 	m_pSphere->transform.pos.y = 0.1f;
+	
 	
 	//Orbite de la caméra 
 	XMFLOAT3 pos = { m_pSphere->transform.pos.x,				//Position de la sphere  en X
@@ -119,34 +147,10 @@ void App::OnUpdate()
 	
 
 	//Mouvement des cailloux
-	for (auto i = m_pRock.begin(); i != m_pRock.end(); ++i)
-	{
-		Rock* pRock = *i;
-		pRock->m_pEntity->transform.pos.y -= dt * 2.0f;
-		//fmodf();
-
-		if (pRock->m_pEntity->transform.pos.y <= m_pCircle->transform.pos.y)
-		{
-			cpuEngine.Release(pRock->m_pEntity);
-			m_score--;
-			continue;
-		}
-		if (cpu::SphereSphere(pRock->m_pEntity->transform.pos,pRock->m_pEntity->pMesh->radius,m_pSphere->transform.pos, m_pSphere->pMesh->radius))
-		{
-			cpuEngine.Release(pRock->m_pEntity);
-			m_score++;
-			continue;
-		}
-	}
+	MoveRocks(dt);
 
 	//Destruction des cailloux
-	for (auto it = m_pRock.begin(); it != m_pRock.end(); )
-	{
-		if ((*it)->m_pEntity->dead)
-			it = m_pRock.erase(it);
-		else
-			++it;
-	}
+	PurgeRock();
 
 	if (cpuInput.IsBackPressed())
 		cpuEngine.Quit();
@@ -181,5 +185,16 @@ void Rock::CreateRock(cpu_mesh* mesh, float angle)
 	cpu_entity* pTmpEntity = cpuEngine.CreateEntity();
 	pTmpEntity->pMesh = mesh;
 
+	m_pEntity = pTmpEntity;
+
 	m_angle = angle;
+}
+
+void Rock::DeleteRock()
+{
+	if (m_pEntity)
+	{
+		cpuEngine.Release(m_pEntity);
+		m_pEntity = nullptr;
+	}
 }
