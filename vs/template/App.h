@@ -1,17 +1,6 @@
 #pragma once
 
-class Rock
-{
-public:
-	cpu_entity* m_pEntity;
-	float m_angle;
-
-public:
-
-	void CreateRock(cpu_mesh* mesh, float angle);
-	void DeleteRock();
-
-};
+class Rock;
 
 class App
 {
@@ -37,7 +26,6 @@ private:
 	cpu_rt* m_rts[1];
 
 	//Ressources
-	cpu_mesh m_rail;
 	cpu_mesh m_circle;
 	cpu_mesh m_Scircle;
 	cpu_mesh m_sphere;
@@ -46,12 +34,12 @@ private:
 
 	cpu_texture m_textureSkybox;
 
+	cpu_material m_materialSkybox;
+
 	cpu_font m_font;
 
 
 	//3D
-	cpu_entity* m_pRail;
-	std::list<cpu_entity*> m_pRing;
 	cpu_entity* m_pCircle;
 	cpu_entity* m_pSCircle;
 	cpu_entity* m_pSphere;
@@ -60,7 +48,9 @@ private:
 
 	float m_spawnRate = 1.0f;
 	float m_delay = 0.0f;
-	float m_angle = 0.f;
+	float m_angle = 0.0f;
+	float m_acceleration = 0.0f;
+	int decelerationCount = 0;
 
 	int m_score = 0;
 	ui32 rand;

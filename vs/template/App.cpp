@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Rock.h"
 
 App::App()
 {
@@ -31,26 +32,30 @@ void App::SpawnRock()
 
 void App::MoveRocks(float dt)
 {
-	for (auto i = m_pRock.begin(); i != m_pRock.end(); ++i)
+	for (auto it = m_pRock.begin(); it != m_pRock.end();)
 	{
-		Rock* pRock = *i;
+		Rock* pRock = *it;
+		//float modF = 0.0f;
 		pRock->m_pEntity->transform.pos.y -= dt * 2.0f;
-		//fmodf();
+		//modF = fmodf(pRock->m_pEntity->transform.pos.x, m_pSphere->transform.pos.x);
 
 		if (pRock->m_pEntity->transform.pos.y <= m_pCircle->transform.pos.y)
 		{
-			pRock->DeleteRock();
-			i = m_pRock.erase(i);
+			pRock->CleanRock();
+			it = m_pRock.erase(it);
+			delete pRock;
 			m_score--;
 			continue;
 		}
 		if (cpu::SphereSphere(pRock->m_pEntity->transform.pos, pRock->m_pEntity->pMesh->radius, m_pSphere->transform.pos, m_pSphere->pMesh->radius))
 		{
-			pRock->DeleteRock();
-			i = m_pRock.erase(i);
+			pRock->CleanRock();
+			it = m_pRock.erase(it);
+			delete pRock;
 			m_score++;
 			continue;
 		}
+		++it;
 	}
 }
 
@@ -88,17 +93,20 @@ void App::OnStart()
 	m_Scircle.CreateCircle(0.80f, 32);
 	m_rock.CreateSphere(0.05f, 5.0f, 5.0f);
 	m_skybox.CreateSkyBox(50.0f);
-
 	m_sphere.CreateSphere(0.1f,10.f,10.f, sphereColor, sphereColor); 
 
 	//Texture
-	m_textureSkybox.Load("Axel.png");
+
+	m_textureSkybox.Load("earth.png");
+	m_materialSkybox.pTexture = &m_textureSkybox;
 
 	//Entity
 	
 	m_pSkybox = cpuEngine.CreateEntity();
 	m_pSkybox->pMesh = &m_skybox;
+	m_pSkybox->pMaterial = &m_materialSkybox;
 	
+
 	m_pCircle = cpuEngine.CreateEntity();
 	m_pCircle->pMesh = &m_circle;
 
@@ -118,12 +126,46 @@ void App::OnUpdate()
 	float dt = cpuTime.delta;
 	float time = cpuTime.total;
 	m_delay += dt;
-	
+
+	float vitesse = 0.0f;
+
+
+
+
 	//Input
 	if (cpuInput.IsLeft())
-		m_angle += dt * XM_PI;
+	{
+		if (m_acceleration < 1.5 * XM_PI)
+			m_acceleration += 0.5f;
+		else
+			m_acceleration = 1.5 * XM_PI;
+	}
 	if (cpuInput.IsRight())
-		m_angle += -dt * XM_PI;
+	{
+		if (m_acceleration > -1.5 * XM_PI)
+			m_acceleration -= 0.5f;
+		else
+			m_acceleration = -1.5 * XM_PI;
+
+	}
+	if (cpuInput.IsLeft() == false && cpuInput.IsRight() == false)
+	{
+		if (m_acceleration > 0.3f)
+		{
+			m_acceleration -= 0.5f;
+		}
+		else if (m_acceleration < -0.3f)
+		{
+			m_acceleration += 0.5f;
+		}
+		else
+		{
+			m_acceleration = 0.0f;
+		}
+	}
+
+	m_angle += dt * m_acceleration;
+
 
 	//Spawn des cailloux
 	if (m_delay >= 1.0)
@@ -159,6 +201,12 @@ void App::OnUpdate()
 void App::OnExit()
 {
 	// YOUR CODE HERE
+	for (auto it = m_pRock.begin(); it != m_pRock.end();it++)
+	{
+		delete* it;
+	}
+	m_pRock.clear();
+
 }
 
 void App::OnRender(int pass)
@@ -179,22 +227,3 @@ void App::MyPixelShader(cpu_ps_io& io)
 //////////////////////////////////
 //////////////////////////////////
 //////////////////////////////////
-
-void Rock::CreateRock(cpu_mesh* mesh, float angle)
-{
-	cpu_entity* pTmpEntity = cpuEngine.CreateEntity();
-	pTmpEntity->pMesh = mesh;
-
-	m_pEntity = pTmpEntity;
-
-	m_angle = angle;
-}
-
-void Rock::DeleteRock()
-{
-	if (m_pEntity)
-	{
-		cpuEngine.Release(m_pEntity);
-		m_pEntity = nullptr;
-	}
-}
